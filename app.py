@@ -5,6 +5,7 @@ import jwt
 import time
 import os
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 
 app = Flask(__name__)
 
@@ -16,8 +17,34 @@ class MMSAPIClient:
         self.private_key = os.environ.get('PRIVATE_KEY')
         self.host = "https://mms-api.shoalter.com/mmsAdmin"
         
+        # SKU prefix configuration
+        self.sku_prefix = os.environ.get('SKU_PREFIX', 'B1112001_S_')
+        
+        # Fallback to credentials.json for local development
         if not all([self.store_code, self.uuid, self.private_key]):
-            raise ValueError("Missing required environment variables: STORE_CODE, API_UUID, PRIVATE_KEY")
+            try:
+                with open('credentials.json', 'r') as f:
+                    creds = json.load(f)
+                    self.store_code = creds.get('store_code')
+                    self.uuid = creds.get('uuid')
+                    self.private_key = creds.get('private_key')
+                    self.sku_prefix = creds.get('sku_prefix', 'B1112001_S_')
+            except FileNotFoundError:
+                pass
+        
+        if not all([self.store_code, self.uuid, self.private_key]):
+            raise ValueError("Missing required credentials: STORE_CODE, API_UUID, PRIVATE_KEY")
+    
+    def format_sku_code(self, user_input):
+        """Format SKU code - add prefix if not already present"""
+        user_input = user_input.strip()
+        
+        # If user input already contains the full SKU format, use as is
+        if '_S_' in user_input:
+            return user_input
+        
+        # Otherwise, add the prefix
+        return f"{self.sku_prefix}{user_input}"
     
     def generate_token(self):
         """Generate JWT token for API authentication"""
@@ -39,8 +66,60 @@ class MMSAPIClient:
         token = jwt.encode(payload, formatted_key, algorithm='RS256')
         return token
     
-    def get_product(self, sku_code):
-        """Fetch product details from MMS API"""
+    def get_product(self, user_sku_input):
+        """Fetch product details from MMS API using GET method"""
+        try:
+            # Format the SKU code
+            full_sku_code = self.format_sku_code(user_sku_input)
+            print(f"User input: '{user_sku_input}' -> Full SKU: '{full_sku_code}'")
+            
+            token = self.generate_token()
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'x-auth-token': token,
+                'storeCode': self.store_code,
+                'platformCode': 'HKTV',
+                'businessType': 'eCommerce'
+            }
+            
+            # Use GET method with request body as per documentation
+            payload = [{"skuCode": full_sku_code}]
+            
+            # Try the GET method first as per documentation
+            response = requests.get(
+                f"{self.host}/oapi/api/product/details",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            print(f"Response Status: {response.status_code}")
+            print(f"Response Headers: {response.headers}")
+            print(f"Response Text: {response.text[:500]}...")  # First 500 chars
+            
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('code') == 'success' and data.get('data'):
+                    product_data = data['data'][0]
+                    return self.format_product_data(product_data, user_sku_input)
+                else:
+                    print(f"API returned no data: {data}")
+                    return None
+            elif response.status_code == 405:
+                # If GET doesn't work, try POST as alternative
+                print("GET method not allowed, trying POST...")
+                return self.get_product_post(full_sku_code, user_sku_input)
+            else:
+                print(f"API Error: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Error fetching product: {str(e)}")
+            return None
+    
+    def get_product_post(self, full_sku_code, user_input):
+        """Alternative method using POST if GET fails"""
         try:
             token = self.generate_token()
             
@@ -52,7 +131,7 @@ class MMSAPIClient:
                 'businessType': 'eCommerce'
             }
             
-            payload = [{"skuCode": sku_code}]
+            payload = [{"skuCode": full_sku_code}]
             
             response = requests.post(
                 f"{self.host}/oapi/api/product/details",
@@ -61,22 +140,26 @@ class MMSAPIClient:
                 timeout=30
             )
             
+            print(f"POST Response Status: {response.status_code}")
+            print(f"POST Response Text: {response.text[:500]}...")
+            
             if response.status_code == 200:
                 data = response.json()
                 if data.get('code') == 'success' and data.get('data'):
                     product_data = data['data'][0]
-                    return self.format_product_data(product_data)
+                    return self.format_product_data(product_data, user_input)
                 else:
+                    print(f"POST API returned no data: {data}")
                     return None
             else:
-                print(f"API Error: {response.status_code} - {response.text}")
+                print(f"POST API Error: {response.status_code} - {response.text}")
                 return None
                 
         except Exception as e:
-            print(f"Error fetching product: {str(e)}")
+            print(f"Error in POST method: {str(e)}")
             return None
     
-    def format_product_data(self, product_data):
+    def format_product_data(self, product_data, user_input):
         """Format product data for frontend"""
         # Get main image
         main_image = None
@@ -95,6 +178,7 @@ class MMSAPIClient:
         
         return {
             'skuCode': product_data.get('fullSkuCode'),
+            'userInput': user_input,  # Store original user input
             'title': product_data.get('skuNameTchi') or product_data.get('skuName'),
             'titleEn': product_data.get('skuName'),
             'description': product_data.get('skuSDescCh') or product_data.get('skuSDescEn'),
@@ -111,13 +195,15 @@ class MMSAPIClient:
 # Initialize API client
 try:
     api_client = MMSAPIClient()
+    print(f"API Client initialized successfully with SKU prefix: {api_client.sku_prefix}")
 except ValueError as e:
     print(f"Configuration Error: {e}")
     api_client = None
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    sku_prefix = api_client.sku_prefix if api_client else 'B1112001_S_'
+    return render_template('index.html', sku_prefix=sku_prefix)
 
 @app.route('/api/product', methods=['POST'])
 def get_product():
@@ -129,15 +215,18 @@ def get_product():
     
     try:
         data = request.get_json()
-        sku_code = data.get('skuCode', '').strip()
+        user_sku_input = data.get('skuCode', '').strip()
         
-        if not sku_code:
+        if not user_sku_input:
             return jsonify({
                 'success': False,
                 'error': '請輸入產品SKU代碼'
             }), 400
         
-        product = api_client.get_product(sku_code)
+        print(f"Searching for product with user input: {user_sku_input}")
+        
+        # Get product with auto-formatted SKU
+        product = api_client.get_product(user_sku_input)
         
         if product:
             return jsonify({
@@ -147,7 +236,7 @@ def get_product():
         else:
             return jsonify({
                 'success': False,
-                'error': '找不到該產品，請檢查SKU代碼是否正確'
+                'error': f'找不到產品代碼 "{user_sku_input}"，請檢查代碼是否正確'
             }), 404
             
     except Exception as e:
@@ -155,6 +244,28 @@ def get_product():
         return jsonify({
             'success': False,
             'error': '系統發生錯誤，請稍後再試'
+        }), 500
+
+@app.route('/api/test', methods=['GET'])
+def test_api():
+    """Test endpoint to check API connectivity"""
+    if not api_client:
+        return jsonify({'error': 'API client not configured'}), 500
+    
+    try:
+        token = api_client.generate_token()
+        return jsonify({
+            'success': True,
+            'store_code': api_client.store_code,
+            'sku_prefix': api_client.sku_prefix,
+            'uuid': api_client.uuid[:8] + '...',  # Show only first 8 chars for security
+            'token_generated': bool(token),
+            'timestamp': datetime.now(timezone.utc).isoformat()
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500
 
 @app.route('/product/<sku_code>')
@@ -174,4 +285,4 @@ def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.now(timezone.utc).isoformat()})
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
