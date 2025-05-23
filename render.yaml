@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: hktvmall-ecatalog
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    envVars:
+      - key: STORE_CODE
+        sync: false
+      - key: API_UUID
+        sync: false
+      - key: PRIVATE_KEY
+        sync: false

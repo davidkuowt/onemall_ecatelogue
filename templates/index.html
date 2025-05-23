@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKTVmall 產品電子目錄</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .form-section {
+            padding: 30px 20px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .product-card {
+            margin-top: 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 15px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background: #f8f9fa;
+        }
+
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .product-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .product-price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #ee5a24;
+            margin-bottom: 15px;
+        }
+
+        .product-meta {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-share {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-wechat {
+            background: #1aad19;
+            color: white;
+        }
+
+        .btn-whatsapp {
+            background: #25d366;
+            color: white;
+        }
+
+        .btn-copy {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-share:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-share-full {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .header {
+                padding: 20px 15px;
+            }
+            
+            .form-section {
+                padding: 20px 15px;
+            }
+
+            .share-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛍️ HKTVmall 產品電子目錄</h1>
+            <p>快速分享產品到即時通訊軟體</p>
+        </div>
+        
+        <div class="form-section">
+            <form id="productForm">
+                <div class="input-group">
+                    <label for="skuCode">產品 SKU 代碼</label>
+                    <input type="text" id="skuCode" name="skuCode" 
+                           placeholder="請輸入 SKU 代碼 (例如: H8220001_S_a1)" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="searchBtn">
+                    🔍 搜尋產品
+                </button>
+            </form>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>正在獲取產品資訊...</p>
+            </div>
+            
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="success" class="success" style="display: none;"></div>
+            
+            <div id="productCard" class="product-card">
+                <img id="productImage" class="product-image" src="" alt="產品圖片">
+                <div class="product-info">
+                    <div id="productTitle" class="product-title"></div>
+                    <div id="productDescription" class="product-description"></div>
+                    <div id="productPrice" class="product-price"></div>
+                    <div id="productMeta" class="product-meta"></div>
+                    
+                    <div class="share-options">
+                        <button class="btn-share btn-wechat" onclick="shareToWeChat()">
+                            💬 微信
+                        </button>
+                        <button class="btn-share btn-whatsapp" onclick="shareToWhatsApp()">
+                            📱 WhatsApp
+                        </button>
+                        <button class="btn-share btn-copy btn-share-full" onclick="copyToClipboard()">
+                            📋 複製資訊
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProduct = null;
+
+        document.getElementById('productForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const skuCode = document.getElementById('skuCode').value.trim();
+            if (!skuCode) return;
+            
+            await searchProduct(skuCode);
+        });
+
+        async function searchProduct(skuCode) {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const success = document.getElementById('success');
+            const productCard = document.getElementById('productCard');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            // Show loading state
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            success.style.display = 'none';
+            productCard.style.display = 'none';
+            searchBtn.disabled = true;
+            searchBtn.textContent = '🔍 搜尋中...';
+            
+            try {
+                const response = await fetch('/api/product', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ skuCode: skuCode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayProduct(data.product);
+                } else {
+                    showError(data.error || '無法獲取產品資訊');
+                }
+            } catch (err) {
+                showError('網路錯誤，請檢查連線並重試');
+            } finally {
+                loading.style.display = 'none';
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 搜尋產品';
+            }
+        }
+
+        function displayProduct(product) {
+            currentProduct = product;
+            
+            document.getElementById('productImage').src = product.image || '/static/placeholder.jpg';
+            document.getElementById('productTitle').textContent = product.title;
+            document.getElementById('productDescription').textContent = product.description || '';
+            document.getElementById('productPrice').textContent = product.price;
+            document.getElementById('productMeta').textContent = `SKU: ${product.skuCode}${product.brand ? ' | 品牌: ' + product.brand : ''}`;
+            
+            document.getElementById('productCard').style.display = 'block';
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            const success = document.getElementById('success');
+            success.textContent = message;
+            success.style.display = 'block';
+            setTimeout(() => {
+                success.style.display = 'none';
+            }, 3000);
+        }
+
+        function getShareText() {
+            if (!currentProduct) return '';
+            
+            return `🛍️ ${currentProduct.title}
+
+💰 ${currentProduct.price}
+
+${currentProduct.description ? '📝 ' + currentProduct.description : ''}
+
+🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.skuCode)}
+
+#HKTVmall #購物分享`;
+        }
+
+        function shareToWeChat() {
+            const shareText = getShareText();
+            copyToClipboard(shareText, '已複製到剪貼簿！\n\n請前往微信貼上分享：\n1. 開啟微信\n2. 選擇聊天對象\n3. 長按輸入框並貼上');
+        }
+
+        function shareToWhatsApp() {
+            if (!currentProduct) return;
+            
+            const shareText = getShareText();
+            const encodedText = encodeURIComponent(shareText);
+            
+            // Check if mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // Use WhatsApp app URL for mobile
+                window.open(`whatsapp://send?text=${encodedText}`, '_blank');
+            } else {
+                // Use WhatsApp Web for desktop
+                window.open(`https://web.whatsapp.com/send?text=${encodedText}`, '_blank');
+            }
+        }
+
+        function copyToClipboard(text = null, message = '產品資訊已複製到剪貼簿！') {
+            const shareText = text || getShareText();
+            
+            navigator.clipboard.writeText(shareText).then(() => {
+                showSuccess(message);
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showSuccess(message);
+            });
+        }
+
+        // Auto-focus on SKU input
+        document.getElementById('skuCode').focus();
+    </script>
+</body>
+</html>
