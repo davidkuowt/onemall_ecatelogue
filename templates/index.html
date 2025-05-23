@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HKTVmall 產品電子目錄</title>
+    <title>產品電子目錄</title>
     <style>
         * {
             margin: 0;
@@ -219,11 +219,6 @@
             color: white;
         }
 
-        .btn-download {
-            background: #17a2b8;
-            color: white;
-        }
-
         .btn-action:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
@@ -292,7 +287,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛍️ HKTVmall 產品電子目錄</h1>
+            <h1>🛍️ 產品電子目錄</h1>
             <p>快速分享產品到即時通訊軟體</p>
         </div>
         
@@ -332,9 +327,6 @@
                         <button class="btn-action btn-copy" onclick="copyToClipboard()">
                             📋 複製產品資訊
                         </button>
-                        <a id="downloadLink" class="btn-action btn-download" href="#" download="">
-                            📱 下載產品圖片
-                        </a>
                     </div>
                 </div>
             </div>
@@ -410,16 +402,6 @@
             document.getElementById('productMeta').textContent = 
                 `完整SKU: ${product.skuCode}${product.brand ? ' | 品牌: ' + product.brand : ''}`;
             
-            // Setup download link
-            const downloadLink = document.getElementById('downloadLink');
-            if (product.image) {
-                downloadLink.href = product.image;
-                downloadLink.download = `${product.userInput}_product_image.jpg`;
-                downloadLink.style.display = 'flex';
-            } else {
-                downloadLink.style.display = 'none';
-            }
-            
             document.getElementById('productCard').style.display = 'block';
         }
 
@@ -441,18 +423,11 @@
         function getShareText() {
             if (!currentProduct) return '';
             
-            // Use plain text version for sharing
-            const description = currentProduct.shortDescriptionPlain || '';
-            
             return `🛍️ ${currentProduct.title}
 
 💰 ${currentProduct.price}
 
-${description ? '📝 ' + description : ''}
-
-🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.userInput)}
-
-#一同百貨 #OneMall`;
+🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.userInput)}`;
         }
 
         function copyToClipboard() {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product.title }} - HKTVmall</title>
+    <title>{{ product.title }}</title>
     <meta property="og:title" content="{{ product.title }}">
     <meta property="og:description" content="{{ product.shortDescriptionPlain }}">
     <meta property="og:image" content="{{ product.image }}">
@@ -71,6 +71,7 @@
             padding: 10px;
             background: #f8f9fa;
             border-radius: 5px;
+            margin-bottom: 20px;
         }
         .section-title {
             font-size: 16px;
@@ -125,6 +126,41 @@
             margin-bottom: 5px;
         }
 
+        .copy-button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .copy-button:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            text-align: center;
+            display: none;
+        }
+
         @media (max-width: 480px) {
             .container {
                 margin: 10px;
@@ -160,6 +196,55 @@
             {% if product.brand %}<br>品牌: {{ product.brand }}{% endif %}
             {% if product.barcode %}<br>條碼: {{ product.barcode }}{% endif %}
         </div>
+
+        <button class="copy-button" onclick="copyProductInfo()">
+            📋 複製產品資訊
+        </button>
+        
+        <div id="successMessage" class="success-message">
+            產品資訊已複製到剪貼簿！
+        </div>
     </div>
+
+    <script>
+        const productData = {
+            title: '{{ product.title }}',
+            price: '{{ product.price }}',
+            userInput: '{{ product.userInput }}'
+        };
+
+        function getShareText() {
+            return `🛍️ ${productData.title}
+
+💰 ${productData.price}
+
+🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(productData.userInput)}`;
+        }
+
+        function copyProductInfo() {
+            const shareText = getShareText();
+            
+            navigator.clipboard.writeText(shareText).then(() => {
+                showSuccess();
+            }).catch(() => {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = shareText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showSuccess();
+            });
+        }
+
+        function showSuccess() {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.style.display = 'block';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+    </script>
 </body>
 </html>
