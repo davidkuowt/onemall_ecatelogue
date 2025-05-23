@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ product.title }} - HKTVmall</title>
     <meta property="og:title" content="{{ product.title }}">
-    <meta property="og:description" content="{{ product.description }}">
+    <meta property="og:description" content="{{ product.shortDescription }}">
     <meta property="og:image" content="{{ product.image }}">
     <meta property="og:url" content="{{ request.url }}">
     <style>
@@ -14,6 +14,7 @@
             margin: 0;
             padding: 20px;
             background: #f5f5f5;
+            line-height: 1.6;
         }
         .container {
             max-width: 600px;
@@ -25,31 +26,71 @@
         }
         .product-image {
             width: 100%;
-            max-height: 400px;
+            max-width: 400px;
+            height: 400px;
             object-fit: cover;
             border-radius: 10px;
-            margin-bottom: 20px;
+            margin: 0 auto 20px;
+            display: block;
+            aspect-ratio: 1;
         }
         .product-title {
             font-size: 24px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #333;
+            line-height: 1.4;
         }
         .product-price {
             font-size: 20px;
             color: #ee5a24;
             font-weight: bold;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         .product-description {
             color: #666;
             line-height: 1.6;
             margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .product-long-description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
         }
         .product-meta {
             color: #999;
             font-size: 14px;
+            font-family: 'Courier New', monospace;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #ee5a24;
+            padding-bottom: 5px;
+        }
+        @media (max-width: 480px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            .product-title {
+                font-size: 20px;
+            }
+            .product-image {
+                height: 300px;
+            }
         }
     </style>
 </head>
@@ -58,12 +99,21 @@
         <img src="{{ product.image }}" alt="{{ product.title }}" class="product-image">
         <h1 class="product-title">{{ product.title }}</h1>
         <div class="product-price">{{ product.price }}</div>
-        {% if product.description %}
-        <div class="product-description">{{ product.description }}</div>
+        
+        {% if product.shortDescription %}
+        <div class="section-title">產品簡介</div>
+        <div class="product-description">{{ product.shortDescription }}</div>
         {% endif %}
+        
+        {% if product.longDescription %}
+        <div class="section-title">產品詳細說明</div>
+        <div class="product-long-description">{{ product.longDescription }}</div>
+        {% endif %}
+        
         <div class="product-meta">
-            SKU: {{ product.skuCode }}
-            {% if product.brand %} | 品牌: {{ product.brand }}{% endif %}
+            完整SKU: {{ product.skuCode }}
+            {% if product.brand %}<br>品牌: {{ product.brand }}{% endif %}
+            {% if product.barcode %}<br>條碼: {{ product.barcode }}{% endif %}
         </div>
     </div>
 </body>

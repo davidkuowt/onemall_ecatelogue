@@ -60,19 +60,37 @@
             color: #333;
         }
 
-        .input-group input {
-            width: 100%;
-            padding: 15px;
+        .sku-input-container {
+            display: flex;
+            align-items: center;
             border: 2px solid #e1e8ed;
             border-radius: 10px;
-            font-size: 16px;
+            overflow: hidden;
             transition: all 0.3s ease;
         }
 
-        .input-group input:focus {
-            outline: none;
+        .sku-input-container:focus-within {
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .sku-prefix {
+            background: #f8f9fa;
+            padding: 15px 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border-right: 1px solid #e1e8ed;
+            white-space: nowrap;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 15px 12px;
+            border: none;
+            font-size: 16px;
+            outline: none;
+            font-family: 'Courier New', monospace;
         }
 
         .btn {
@@ -115,6 +133,7 @@
             height: 300px;
             object-fit: cover;
             background: #f8f9fa;
+            aspect-ratio: 1;
         }
 
         .product-info {
@@ -147,16 +166,17 @@
             font-size: 12px;
             color: #999;
             margin-bottom: 15px;
+            font-family: 'Courier New', monospace;
         }
 
-        .share-buttons {
+        .action-buttons {
             display: flex;
+            flex-direction: column;
             gap: 10px;
             margin-top: 15px;
         }
 
-        .btn-share {
-            flex: 1;
+        .btn-action {
             padding: 12px;
             border: none;
             border-radius: 8px;
@@ -167,24 +187,20 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-        }
-
-        .btn-wechat {
-            background: #1aad19;
-            color: white;
-        }
-
-        .btn-whatsapp {
-            background: #25d366;
-            color: white;
+            text-decoration: none;
         }
 
         .btn-copy {
-            background: #6c757d;
+            background: #28a745;
             color: white;
         }
 
-        .btn-share:hover {
+        .btn-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-action:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
@@ -228,17 +244,6 @@
             margin-top: 15px;
         }
 
-        .share-options {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .btn-share-full {
-            grid-column: 1 / -1;
-        }
-
         @media (max-width: 480px) {
             .container {
                 margin: 10px;
@@ -253,8 +258,9 @@
                 padding: 20px 15px;
             }
 
-            .share-options {
-                grid-template-columns: 1fr;
+            .sku-prefix {
+                font-size: 12px;
+                padding: 15px 8px;
             }
         }
     </style>
@@ -270,8 +276,11 @@
             <form id="productForm">
                 <div class="input-group">
                     <label for="skuCode">產品 SKU 代碼</label>
-                    <input type="text" id="skuCode" name="skuCode" 
-                           placeholder="請輸入 SKU 代碼 (例如: H8220001_S_a1)" required>
+                    <div class="sku-input-container">
+                        <div class="sku-prefix">{{ sku_prefix }}</div>
+                        <input type="text" id="skuCode" name="skuCode" 
+                               placeholder="OM00294" required>
+                    </div>
                 </div>
                 
                 <button type="submit" class="btn btn-primary" id="searchBtn">
@@ -295,16 +304,13 @@
                     <div id="productPrice" class="product-price"></div>
                     <div id="productMeta" class="product-meta"></div>
                     
-                    <div class="share-options">
-                        <button class="btn-share btn-wechat" onclick="shareToWeChat()">
-                            💬 微信
+                    <div class="action-buttons">
+                        <button class="btn-action btn-copy" onclick="copyToClipboard()">
+                            📋 複製產品資訊
                         </button>
-                        <button class="btn-share btn-whatsapp" onclick="shareToWhatsApp()">
-                            📱 WhatsApp
-                        </button>
-                        <button class="btn-share btn-copy btn-share-full" onclick="copyToClipboard()">
-                            📋 複製資訊
-                        </button>
+                        <a id="downloadLink" class="btn-action btn-download" href="#" download="">
+                            📱 下載產品圖片
+                        </a>
                     </div>
                 </div>
             </div>
@@ -313,6 +319,7 @@
 
     <script>
         let currentProduct = null;
+        const skuPrefix = '{{ sku_prefix }}';
 
         document.getElementById('productForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -366,11 +373,24 @@
         function displayProduct(product) {
             currentProduct = product;
             
-            document.getElementById('productImage').src = product.image || '/static/placeholder.jpg';
+            const productImage = document.getElementById('productImage');
+            productImage.src = product.image || '/static/placeholder.jpg';
+            
             document.getElementById('productTitle').textContent = product.title;
-            document.getElementById('productDescription').textContent = product.description || '';
+            document.getElementById('productDescription').textContent = product.shortDescription || '';
             document.getElementById('productPrice').textContent = product.price;
-            document.getElementById('productMeta').textContent = `SKU: ${product.skuCode}${product.brand ? ' | 品牌: ' + product.brand : ''}`;
+            document.getElementById('productMeta').textContent = 
+                `完整SKU: ${product.skuCode}${product.brand ? ' | 品牌: ' + product.brand : ''}`;
+            
+            // Setup download link
+            const downloadLink = document.getElementById('downloadLink');
+            if (product.image) {
+                downloadLink.href = product.image;
+                downloadLink.download = `${product.userInput}_product_image.jpg`;
+                downloadLink.style.display = 'flex';
+            } else {
+                downloadLink.style.display = 'none';
+            }
             
             document.getElementById('productCard').style.display = 'block';
         }
@@ -397,41 +417,18 @@
 
 💰 ${currentProduct.price}
 
-${currentProduct.description ? '📝 ' + currentProduct.description : ''}
+${currentProduct.shortDescription ? '📝 ' + currentProduct.shortDescription : ''}
 
-🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.skuCode)}
+🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.userInput)}
 
-#HKTVmall #購物分享`;
+#一同百貨 #OneMall`;
         }
 
-        function shareToWeChat() {
+        function copyToClipboard() {
             const shareText = getShareText();
-            copyToClipboard(shareText, '已複製到剪貼簿！\n\n請前往微信貼上分享：\n1. 開啟微信\n2. 選擇聊天對象\n3. 長按輸入框並貼上');
-        }
-
-        function shareToWhatsApp() {
-            if (!currentProduct) return;
-            
-            const shareText = getShareText();
-            const encodedText = encodeURIComponent(shareText);
-            
-            // Check if mobile device
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-                // Use WhatsApp app URL for mobile
-                window.open(`whatsapp://send?text=${encodedText}`, '_blank');
-            } else {
-                // Use WhatsApp Web for desktop
-                window.open(`https://web.whatsapp.com/send?text=${encodedText}`, '_blank');
-            }
-        }
-
-        function copyToClipboard(text = null, message = '產品資訊已複製到剪貼簿！') {
-            const shareText = text || getShareText();
             
             navigator.clipboard.writeText(shareText).then(() => {
-                showSuccess(message);
+                showSuccess('產品資訊已複製到剪貼簿！現在可以到任何通訊軟體貼上分享。');
             }).catch(() => {
                 // Fallback for older browsers
                 const textArea = document.createElement('textarea');
@@ -440,7 +437,7 @@ ${currentProduct.description ? '📝 ' + currentProduct.description : ''}
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                showSuccess(message);
+                showSuccess('產品資訊已複製到剪貼簿！');
             });
         }
 

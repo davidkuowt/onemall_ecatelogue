@@ -4,8 +4,10 @@ import json
 import jwt
 import time
 import os
+import re
 from datetime import datetime, timezone
 from urllib.parse import urlencode
+from html import unescape
 
 app = Flask(__name__)
 
@@ -45,6 +47,25 @@ class MMSAPIClient:
         
         # Otherwise, add the prefix
         return f"{self.sku_prefix}{user_input}"
+    
+    def clean_html_text(self, html_text):
+        """Remove HTML tags and clean up text"""
+        if not html_text:
+            return ""
+        
+        # Remove HTML tags
+        clean_text = re.sub(r'<[^>]+>', '', html_text)
+        
+        # Decode HTML entities
+        clean_text = unescape(clean_text)
+        
+        # Replace multiple spaces/newlines with single space
+        clean_text = re.sub(r'\s+', ' ', clean_text)
+        
+        # Remove extra whitespace
+        clean_text = clean_text.strip()
+        
+        return clean_text
     
     def generate_token(self):
         """Generate JWT token for API authentication"""
@@ -95,8 +116,6 @@ class MMSAPIClient:
             )
             
             print(f"Response Status: {response.status_code}")
-            print(f"Response Headers: {response.headers}")
-            print(f"Response Text: {response.text[:500]}...")  # First 500 chars
             
             if response.status_code == 200:
                 data = response.json()
@@ -141,7 +160,6 @@ class MMSAPIClient:
             )
             
             print(f"POST Response Status: {response.status_code}")
-            print(f"POST Response Text: {response.text[:500]}...")
             
             if response.status_code == 200:
                 data = response.json()
@@ -176,18 +194,33 @@ class MMSAPIClient:
         else:
             price_text = f"{currency} ${original_price}"
         
+        # Get brand and title
+        brand = product_data.get('brandNameTc') or product_data.get('brandNameEn') or ""
+        title = product_data.get('skuNameTchi') or product_data.get('skuName') or ""
+        
+        # Format title with brand
+        if brand and title:
+            formatted_title = f"{brand} | {title}"
+        else:
+            formatted_title = title
+        
+        # Clean descriptions
+        short_desc = self.clean_html_text(product_data.get('skuSDescCh') or product_data.get('skuSDescEn'))
+        long_desc = self.clean_html_text(product_data.get('skuLDescCh') or product_data.get('skuLDescEn'))
+        
         return {
             'skuCode': product_data.get('fullSkuCode'),
             'userInput': user_input,  # Store original user input
-            'title': product_data.get('skuNameTchi') or product_data.get('skuName'),
+            'title': formatted_title,
             'titleEn': product_data.get('skuName'),
-            'description': product_data.get('skuSDescCh') or product_data.get('skuSDescEn'),
+            'shortDescription': short_desc,
+            'longDescription': long_desc,
             'price': price_text,
             'originalPrice': original_price,
             'sellingPrice': selling_price,
             'currency': currency,
             'image': main_image,
-            'brand': product_data.get('brandNameTc') or product_data.get('brandNameEn'),
+            'brand': brand,
             'category': product_data.get('primaryCategoryCode'),
             'barcode': product_data.get('barcode')
         }
