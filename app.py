@@ -8,6 +8,7 @@ import re
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 from html import unescape
+from markupsafe import Markup
 
 app = Flask(__name__)
 
@@ -48,21 +49,56 @@ class MMSAPIClient:
         # Otherwise, add the prefix
         return f"{self.sku_prefix}{user_input}"
     
-    def clean_html_text(self, html_text):
-        """Remove HTML tags and clean up text"""
+    def clean_and_format_html(self, html_text):
+        """Clean and format HTML text while preserving essential formatting"""
         if not html_text:
             return ""
         
-        # Remove HTML tags
-        clean_text = re.sub(r'<[^>]+>', '', html_text)
+        # Decode HTML entities first
+        clean_text = unescape(html_text)
+        
+        # Fix common HTML issues and normalize tags
+        # Replace <br> variants with standard <br>
+        clean_text = re.sub(r'<br\s*/?>', '<br>', clean_text, flags=re.IGNORECASE)
+        
+        # Replace <p> tags with <div> for better spacing
+        clean_text = re.sub(r'<p\s*([^>]*)>', r'<div\1>', clean_text, flags=re.IGNORECASE)
+        clean_text = re.sub(r'</p>', '</div>', clean_text, flags=re.IGNORECASE)
+        
+        # Ensure proper spacing around block elements
+        clean_text = re.sub(r'</div>\s*<div>', '</div><br><div>', clean_text)
+        
+        # Clean up extra whitespace but preserve line breaks
+        clean_text = re.sub(r'\n\s*\n', '\n', clean_text)
+        clean_text = re.sub(r'[ \t]+', ' ', clean_text)
+        
+        # Remove empty tags
+        clean_text = re.sub(r'<([^/>]+)>\s*</\1>', '', clean_text)
+        
+        return clean_text.strip()
+    
+    def html_to_plain_text(self, html_text):
+        """Convert HTML to plain text for sharing (removing HTML tags but preserving formatting)"""
+        if not html_text:
+            return ""
         
         # Decode HTML entities
-        clean_text = unescape(clean_text)
+        clean_text = unescape(html_text)
         
-        # Replace multiple spaces/newlines with single space
-        clean_text = re.sub(r'\s+', ' ', clean_text)
+        # Replace <br> with newlines
+        clean_text = re.sub(r'<br\s*/?>', '\n', clean_text, flags=re.IGNORECASE)
+        
+        # Replace </p> and </div> with double newlines for paragraph separation
+        clean_text = re.sub(r'</(?:p|div)>', '\n\n', clean_text, flags=re.IGNORECASE)
+        
+        # Remove all other HTML tags
+        clean_text = re.sub(r'<[^>]+>', '', clean_text)
+        
+        # Clean up multiple newlines
+        clean_text = re.sub(r'\n{3,}', '\n\n', clean_text)
         
         # Remove extra whitespace
+        clean_text = re.sub(r'[ \t]+', ' ', clean_text)
         clean_text = clean_text.strip()
         
         return clean_text
@@ -204,17 +240,27 @@ class MMSAPIClient:
         else:
             formatted_title = title
         
-        # Clean descriptions
-        short_desc = self.clean_html_text(product_data.get('skuSDescCh') or product_data.get('skuSDescEn'))
-        long_desc = self.clean_html_text(product_data.get('skuLDescCh') or product_data.get('skuLDescEn'))
+        # Get descriptions with HTML formatting preserved
+        short_desc_raw = product_data.get('skuSDescCh') or product_data.get('skuSDescEn') or ""
+        long_desc_raw = product_data.get('skuLDescCh') or product_data.get('skuLDescEn') or ""
+        
+        # Format HTML for display
+        short_desc_html = self.clean_and_format_html(short_desc_raw)
+        long_desc_html = self.clean_and_format_html(long_desc_raw)
+        
+        # Convert to plain text for sharing
+        short_desc_plain = self.html_to_plain_text(short_desc_raw)
+        long_desc_plain = self.html_to_plain_text(long_desc_raw)
         
         return {
             'skuCode': product_data.get('fullSkuCode'),
             'userInput': user_input,  # Store original user input
             'title': formatted_title,
             'titleEn': product_data.get('skuName'),
-            'shortDescription': short_desc,
-            'longDescription': long_desc,
+            'shortDescription': Markup(short_desc_html),  # HTML for display
+            'longDescription': Markup(long_desc_html),   # HTML for display
+            'shortDescriptionPlain': short_desc_plain,   # Plain text for sharing
+            'longDescriptionPlain': long_desc_plain,     # Plain text for sharing
             'price': price_text,
             'originalPrice': original_price,
             'sellingPrice': selling_price,
@@ -262,9 +308,14 @@ def get_product():
         product = api_client.get_product(user_sku_input)
         
         if product:
+            # Convert Markup objects to strings for JSON serialization
+            product_json = dict(product)
+            product_json['shortDescription'] = str(product['shortDescription'])
+            product_json['longDescription'] = str(product['longDescription'])
+            
             return jsonify({
                 'success': True,
-                'product': product
+                'product': product_json
             })
         else:
             return jsonify({

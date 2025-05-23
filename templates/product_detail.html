@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product.title }} - 一同百貨 One Mall</title>
+    <title>{{ product.title }} - HKTVmall</title>
     <meta property="og:title" content="{{ product.title }}">
-    <meta property="og:description" content="{{ product.shortDescription }}">
+    <meta property="og:description" content="{{ product.shortDescriptionPlain }}">
     <meta property="og:image" content="{{ product.image }}">
     <meta property="og:url" content="{{ request.url }}">
     <style>
@@ -80,6 +80,51 @@
             border-bottom: 2px solid #ee5a24;
             padding-bottom: 5px;
         }
+        
+        /* HTML formatting styles */
+        .product-description b,
+        .product-description strong,
+        .product-long-description b,
+        .product-long-description strong {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .product-description i,
+        .product-description em,
+        .product-long-description i,
+        .product-long-description em {
+            font-style: italic;
+        }
+
+        .product-description br,
+        .product-long-description br {
+            line-height: 1.8;
+        }
+
+        .product-description div,
+        .product-long-description div {
+            margin-bottom: 8px;
+        }
+
+        .product-description div:last-child,
+        .product-long-description div:last-child {
+            margin-bottom: 0;
+        }
+
+        .product-description ul,
+        .product-description ol,
+        .product-long-description ul,
+        .product-long-description ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .product-description li,
+        .product-long-description li {
+            margin-bottom: 5px;
+        }
+
         @media (max-width: 480px) {
             .container {
                 margin: 10px;
@@ -102,12 +147,12 @@
         
         {% if product.shortDescription %}
         <div class="section-title">產品簡介</div>
-        <div class="product-description">{{ product.shortDescription }}</div>
+        <div class="product-description">{{ product.shortDescription|safe }}</div>
         {% endif %}
         
         {% if product.longDescription %}
         <div class="section-title">產品詳細說明</div>
-        <div class="product-long-description">{{ product.longDescription }}</div>
+        <div class="product-long-description">{{ product.longDescription|safe }}</div>
         {% endif %}
         
         <div class="product-meta">

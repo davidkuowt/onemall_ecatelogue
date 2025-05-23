@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>一同百貨 產品電子目錄</title>
+    <title>HKTVmall 產品電子目錄</title>
     <style>
         * {
             margin: 0;
@@ -155,6 +155,30 @@
             line-height: 1.4;
         }
 
+        /* HTML formatting styles for descriptions */
+        .product-description b,
+        .product-description strong {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .product-description i,
+        .product-description em {
+            font-style: italic;
+        }
+
+        .product-description br {
+            line-height: 1.8;
+        }
+
+        .product-description div {
+            margin-bottom: 8px;
+        }
+
+        .product-description div:last-child {
+            margin-bottom: 0;
+        }
+
         .product-price {
             font-size: 20px;
             font-weight: bold;
@@ -268,7 +292,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛍️ 一同百貨 產品電子目錄</h1>
+            <h1>🛍️ HKTVmall 產品電子目錄</h1>
             <p>快速分享產品到即時通訊軟體</p>
         </div>
         
@@ -377,7 +401,11 @@
             productImage.src = product.image || '/static/placeholder.jpg';
             
             document.getElementById('productTitle').textContent = product.title;
-            document.getElementById('productDescription').textContent = product.shortDescription || '';
+            
+            // Set HTML content for description (preserving formatting)
+            const descriptionElement = document.getElementById('productDescription');
+            descriptionElement.innerHTML = product.shortDescription || '';
+            
             document.getElementById('productPrice').textContent = product.price;
             document.getElementById('productMeta').textContent = 
                 `完整SKU: ${product.skuCode}${product.brand ? ' | 品牌: ' + product.brand : ''}`;
@@ -413,11 +441,14 @@
         function getShareText() {
             if (!currentProduct) return '';
             
+            // Use plain text version for sharing
+            const description = currentProduct.shortDescriptionPlain || '';
+            
             return `🛍️ ${currentProduct.title}
 
 💰 ${currentProduct.price}
 
-${currentProduct.shortDescription ? '📝 ' + currentProduct.shortDescription : ''}
+${description ? '📝 ' + description : ''}
 
 🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.userInput)}
 
