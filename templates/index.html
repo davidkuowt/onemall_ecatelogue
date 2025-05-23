@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>產品電子目錄</title>
+    <title>一同百貨 產品電子目錄</title>
     <style>
         * {
             margin: 0;
@@ -287,7 +287,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛍️ 產品電子目錄</h1>
+            <h1>🛍️ 一同百貨 產品電子目錄</h1>
             <p>快速分享產品到即時通訊軟體</p>
         </div>
         
@@ -420,14 +420,36 @@
             }, 3000);
         }
 
+        function cleanDescriptionText(text) {
+            if (!text) return '';
+            
+            // Remove extra line breaks and normalize spacing
+            return text.replace(/\n\s*\n/g, '\n').replace(/\s+/g, ' ').trim();
+        }
+
         function getShareText() {
             if (!currentProduct) return '';
             
-            return `🛍️ ${currentProduct.title}
+            // Use plain text version for sharing and clean it
+            const description = cleanDescriptionText(currentProduct.shortDescriptionPlain || '');
+            
+            let shareText = `🛍️ ${currentProduct.title}
 
-💰 ${currentProduct.price}
+💰 ${currentProduct.price}`;
+
+            // Add description section if available
+            if (description) {
+                shareText += `
+
+📦 產品簡介
+${description}`;
+            }
+
+            shareText += `
 
 🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(currentProduct.userInput)}`;
+
+            return shareText;
         }
 
         function copyToClipboard() {

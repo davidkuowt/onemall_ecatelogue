@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ product.title }}</title>
+    <title>{{ product.title }} - 一同百貨</title>
     <meta property="og:title" content="{{ product.title }}">
     <meta property="og:description" content="{{ product.shortDescriptionPlain }}">
     <meta property="og:image" content="{{ product.image }}">
@@ -210,15 +210,38 @@
         const productData = {
             title: '{{ product.title }}',
             price: '{{ product.price }}',
-            userInput: '{{ product.userInput }}'
+            userInput: '{{ product.userInput }}',
+            shortDescriptionPlain: '{{ product.shortDescriptionPlain|replace("'", "\\'") }}'
         };
 
-        function getShareText() {
-            return `🛍️ ${productData.title}
+        function cleanDescriptionText(text) {
+            if (!text) return '';
+            
+            // Remove extra line breaks and normalize spacing
+            return text.replace(/\n\s*\n/g, '\n').replace(/\s+/g, ' ').trim();
+        }
 
-💰 ${productData.price}
+        function getShareText() {
+            // Clean the description text
+            const description = cleanDescriptionText(productData.shortDescriptionPlain || '');
+            
+            let shareText = `🛍️ ${productData.title}
+
+💰 ${productData.price}`;
+
+            // Add description section if available
+            if (description) {
+                shareText += `
+
+📦 產品簡介
+${description}`;
+            }
+
+            shareText += `
 
 🔗 查看詳情: ${window.location.origin}/product/${encodeURIComponent(productData.userInput)}`;
+
+            return shareText;
         }
 
         function copyProductInfo() {
